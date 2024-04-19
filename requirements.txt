@@ -1,0 +1,3 @@
+git+https://github.com/huggingface/transformers
+torchaudio==2.2.2
+sentencepiece
