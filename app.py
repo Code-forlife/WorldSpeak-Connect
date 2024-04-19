@@ -5,9 +5,8 @@ import os
 import gradio as gr
 import numpy as np
 import torch
-import torchaudio
+import librosa
 from transformers import AutoProcessor, SeamlessM4TModel
-import webbrowser
 
 from lang_list import (
     LANGUAGE_NAME_TO_CODE,
@@ -54,21 +53,20 @@ def predict(
 
     if task_name in ["S2ST", "S2TT", "ASR"]:
         if audio_source == "microphone":
-            input_data = input_audio_mic
+            input_data, org_sr = librosa.load(input_audio_mic, sr=None)
         else:
-            input_data = input_audio_file
-
-        arr, org_sr = torchaudio.load(input_data)
-        new_arr = torchaudio.functional.resample(arr, orig_freq=org_sr, new_freq=AUDIO_SAMPLE_RATE)
-        max_length = int(MAX_INPUT_AUDIO_LENGTH * AUDIO_SAMPLE_RATE)
-        if new_arr.shape[1] > max_length:
-            new_arr = new_arr[:, :max_length]
+            input_data, org_sr = librosa.load(input_audio_file, sr=None)
+        
+        new_sr = int(AUDIO_SAMPLE_RATE)
+        new_arr = librosa.resample(input_data, orig_sr=org_sr, target_sr=new_sr)
+        max_length = int(MAX_INPUT_AUDIO_LENGTH * new_sr)
+        if len(new_arr) > max_length:
+            new_arr = new_arr[:max_length]
             gr.Warning(f"Input audio is too long. Only the first {MAX_INPUT_AUDIO_LENGTH} seconds is used.")
 
-        
-        input_data = processor(audios = new_arr, sampling_rate=AUDIO_SAMPLE_RATE, return_tensors="pt").to(device)
+        input_data = processor(audios=new_arr, sampling_rate=new_sr, return_tensors="pt").to(device)
     else:
-        input_data = processor(text = input_text, src_lang=source_language_code, return_tensors="pt").to(device)
+        input_data = processor(text=input_text, src_lang=source_language_code, return_tensors="pt").to(device)
 
 
     if task_name in ["S2TT", "T2TT"]:
@@ -137,10 +135,6 @@ def process_t2tt_example(
         source_language=source_language,
         target_language=target_language,
     )
-
-def navigate_to_html_page():
-    url = "path_to_your_html_page.html"  # Replace with the actual URL
-    webbrowser.open_new_tab(url)
 
 
 def process_asr_example(input_audio_file: str, target_language: str) -> tuple[tuple[int, np.ndarray] | None, str]:
@@ -241,7 +235,7 @@ def update_example_ui(task_name: str) -> tuple[dict, dict, dict, dict, dict]:
     )
 
 
-with gr.Blocks(css="style.css") as demo:
+with gr.Blocks(css="styles.css") as demo:
     with gr.Group():
         task_name = gr.Dropdown(
             label="Task",

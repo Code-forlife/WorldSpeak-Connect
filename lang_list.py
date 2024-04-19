@@ -33,6 +33,7 @@ LANGUAGE_NAME_TO_CODE = {v: k for k, v in language_code_to_name.items()}
 # Source langs: S2ST / S2TT / ASR don't need source lang
 # T2TT / T2ST use this
 text_source_language_codes = [
+    "eng",
     "cmn",
     "ben",
     "hin",
@@ -64,6 +65,7 @@ TEXT_SOURCE_LANGUAGE_NAMES = sorted([language_code_to_name[code] for code in tex
 # Target langs:
 # S2ST / T2ST
 s2st_target_language_codes =[
+    "eng",
     "cmn",
     "ben",
     "hin",
